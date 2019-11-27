@@ -1,0 +1,61 @@
+{{- $database := .Values.database -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $database.name }}-statefulset
+  labels:
+{{- include "database.labels" . | indent 4 }}
+spec:
+  serviceName: {{ $database.name }}-service
+  replicas: {{ $database.replicaCount }}
+  selector:
+    matchLabels:
+{{- include "database.labels" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{- include "database.labels" . | indent 8 }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{ .Values.imagePullSecrets | toYaml | indent 6 | trim }}
+      {{- end }}
+      containers:
+      - name: {{ $database.container.name }}
+        image: {{ $database.image.repository }}:{{ $database.image.tag }}
+        imagePullPolicy: {{ $database.image.pullPolicy }}
+        ports:
+        - containerPort: {{ $database.container.port }}
+          name: postgresql
+        volumeMounts:
+        - name: {{ $database.name }}-claim
+          mountPath: /var/lib/postgresql/data
+{{- with $database.persistence }}
+      {{- if not .enabled }}
+      volumes:
+      - name: {{ $database.name }}-claim
+        emptyDir: {}
+      {{- else if .existingClaim }}
+      volumes:
+      - name: {{ $database.name }}-claim
+        persistentVolumeClaim:
+          claimName: {{ .existingClaim }}
+      {{- end }}
+  {{- if and .enabled (not .existingClaim) }}
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ $database.name }}-claim
+    spec:
+      accessModes: [ "{{ .accessMode }}" ]
+      {{- if .storageClass }}
+      {{- if (eq "-" .storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .size }}
+  {{- end }}
+{{- end }}

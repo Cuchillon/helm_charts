@@ -1,0 +1,53 @@
+{{- $backend := .Values.backend -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $backend.name }}-deployment
+  labels:
+{{- include "backend.labels" . | indent 4 }}
+spec:
+  replicas: {{ $backend.replicaCount }}
+  selector:
+    matchLabels:
+{{- include "backend.labels" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{- include "backend.labels" . | indent 8 }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{ .Values.imagePullSecrets | toYaml | indent 6 | trim }}
+      {{- end }}
+      initContainers:
+      - name: check-db-ready
+        image: {{ $backend.initContainer.image }}:{{ $backend.initContainer.tag }}
+        command:
+        - "/bin/sh"
+        args:
+        - "-c"
+        {{- with .Values.database }}
+        - "until pg_isready -h {{ .name }}-service -p {{ .headlessService.port }}; do echo waiting for database; sleep 2; done;"
+        {{- end }}
+      containers:
+      - name: {{ $backend.container.name }}
+        image: {{ $backend.image.repository }}:{{ $backend.image.tag }}
+        imagePullPolicy: {{ $backend.image.pullPolicy }}
+        ports:
+        - containerPort: {{ $backend.container.serverPort }}
+        - containerPort: {{ $backend.container.debugPort }}
+        envFrom:
+        - configMapRef:
+            name: {{ $backend.name }}-cm
+        volumeMounts:
+        - name: {{ $backend.name }}-logs
+          mountPath: /usr/local/tomcat/logs
+        - name: {{ $backend.name }}-licenses
+          mountPath: /usr/local/tomcat/licenses
+      volumes:
+      - name: {{ $backend.name }}-logs
+        persistentVolumeClaim:
+          claimName: {{ $backend.name }}-logs-pvc
+      - name: {{ $backend.name }}-licenses
+        persistentVolumeClaim:
+          claimName: {{ $backend.name }}-licenses-pvc

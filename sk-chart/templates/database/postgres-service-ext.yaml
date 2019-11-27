@@ -1,0 +1,19 @@
+{{- $database := .Values.database -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $database.name }}-service-ext
+  labels:
+{{- include "database.labels" . | indent 4 }}
+spec:
+  {{- with $database.externalService }}
+  type: {{ .type }}
+  ports:
+  - name: postgresql
+    protocol: TCP
+    port: {{ .port }}
+    targetPort: {{ .targetPort }}
+    nodePort: {{ .nodePort }}
+  {{- end }}
+  selector:
+{{- include "database.labels" . | indent 4 }}

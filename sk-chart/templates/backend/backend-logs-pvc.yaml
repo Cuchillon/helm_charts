@@ -1,0 +1,15 @@
+{{- $backend := .Values.backend -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $backend.name }}-logs-pvc
+  labels:
+{{- include "backend.labels" . | indent 4 }}
+spec:
+  {{- with $backend.persistence }}
+  accessModes:
+  - {{ .logs.accessMode }}
+  resources:
+    requests:
+      storage: {{ .logs.size }}
+  {{- end }}

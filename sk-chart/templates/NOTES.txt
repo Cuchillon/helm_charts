@@ -1,0 +1,6 @@
+Please wait for several minutes for SK-service deployment to complete.
+SK version: {{ .Chart.AppVersion }}
+Helm chart version: {{ .Chart.Version }}
+SK service port: {{ .Values.backend.service.http.nodePort }}
+SK debug port: {{ .Values.backend.service.debug.nodePort }}
+Database external port: {{ .Values.database.externalService.nodePort }}

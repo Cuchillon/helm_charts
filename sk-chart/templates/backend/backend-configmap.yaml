@@ -1,0 +1,28 @@
+{{- $backend := .Values.backend -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $backend.name }}-cm
+  labels:
+{{- include "backend.labels" . | indent 4 }}
+data:
+  {{- with $backend.environment }}
+  spring.profiles.active: {{ .spring.profiles.active | quote }}
+  database.host: {{ .database.host }}
+  database.port: {{ .database.port | quote }}
+  scheduler.delay: {{ .scheduler.delay | quote }}
+  scheduler.maxDays: {{ .scheduler.maxDays | quote }}
+  scheduler.maxMinutes: {{ .scheduler.maxMinutes | quote }}
+  license.agentAddress: {{ .license.agentAddress | quote }}
+  {{- end }}
+  {{- with $backend.environment.notification.base }}
+  {{- if eq .enabled true }}
+  notification.base.delayMinutes: {{ .delayMinutes | quote }}
+  notification.base.enabled: {{ .enabled | quote }}
+  notification.base.ipAddresses: {{ .ipAddresses | quote }}
+  {{- if .numbers }}
+  notification.base.numbers: {{ .numbers | quote }}
+
+  {{- end }}
+  {{- end }}
+  {{- end }}

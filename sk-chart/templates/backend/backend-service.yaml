@@ -1,0 +1,24 @@
+{{- $backend := .Values.backend -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $backend.name }}-service
+  labels:
+{{- include "backend.labels" . | indent 4 }}
+spec:
+  selector:
+{{- include "backend.labels" . | indent 4 }}
+  ports:
+  - name: http
+    protocol: TCP
+  {{- with $backend.service }}
+    port: {{ .http.port }}
+    targetPort: {{ .http.targetPort }}
+    nodePort: {{ .http.nodePort }}
+  - name: debug
+    protocol: TCP
+    port: {{ .debug.port }}
+    targetPort: {{ .debug.targetPort }}
+    nodePort: {{ .debug.nodePort }}
+  type: {{ .type }}
+  {{- end }}
